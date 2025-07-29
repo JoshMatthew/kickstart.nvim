@@ -100,9 +100,9 @@ vim.g.have_nerd_font = false
 
 -- Make line numbers default
 vim.o.number = true
+vim.o.relativenumber = true
 -- You can also add relative line numbers, to help with jumping.
 --  Experiment for yourself to see if you like it!
--- vim.o.relativenumber = true
 
 -- Enable mouse mode, can be useful for resizing splits for example!
 vim.o.mouse = 'a'
@@ -165,6 +165,13 @@ vim.o.scrolloff = 10
 -- instead raise a dialog asking if you wish to save the current file(s)
 -- See `:help 'confirm'`
 vim.o.confirm = true
+vim.o.tabstop = 2
+vim.o.shiftwidth = 2
+vim.o.softtabstop = 2
+vim.o.expandtab = true
+
+-- CUSTOM vim.o
+vim.o.sessionoptions = 'buffers,curdir,tabpages,winsize,help,globals,skiprtp,localoptions'
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -194,6 +201,33 @@ vim.keymap.set('t', '<Esc><Esc>', '<C-\\><C-n>', { desc = 'Exit terminal mode' }
 --  Use CTRL+<hjkl> to switch between windows
 --
 --  See `:help wincmd` for a list of all window commands
+
+-- MY CUSTOM KEYMAPS START
+-- GIT KEYMAPS
+vim.keymap.set('n', '<leader>gb', '<cmd>Telescope git_branches<CR>', { desc = 'Git branches' })
+vim.keymap.set('n', '<leader>gs', function()
+  require('telescope.builtin').git_status { initial_mode = 'normal' }
+end, { desc = 'Git status (normal mode)' })
+vim.keymap.set('n', '<leader>gc', '<cmd>Telescope git_commits<CR>', { desc = 'Git commits' })
+vim.keymap.set('n', '<leader>gg', '<cmd>Git<CR>', { desc = 'Fugitive: Git Status' })
+
+-- SPLIT SCREEN KEYMAPS
+vim.keymap.set('n', '<leader>sV', '<C-w>t<C-w>H', { desc = 'Switch to vertical split' })
+vim.keymap.set('n', '<leader>sH', '<C-w>t<C-w>K', { desc = 'Switch to horizontal split' })
+vim.keymap.set('n', '<leader>sl', '<C-w>l', { desc = 'Switch to the right buffer' })
+vim.keymap.set('n', '<leader>sk', '<C-w>k', { desc = 'Switch to the upper buffer' })
+vim.keymap.set('n', '<leader>sj', '<C-w>j', { desc = 'Switch to the lower buffer' })
+vim.keymap.set('n', '<leader>sh', '<C-w>h', { desc = 'Switch to the left buffer' })
+
+-- MOTION KEYMAPS
+vim.keymap.set('i', 'jk', '<Esc>', { desc = 'Escape insert mode', noremap = true })
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = 'Go to definition' })
+vim.keymap.set('n', '<leader>rn', vim.lsp.buf.rename, { desc = '[R]e[n]ame symbol' })
+
+-- NVIM TREE
+vim.keymap.set('n', '<leader>n', '<cmd>NvimTreeFocus<CR>', { desc = 'Focus file tree' })
+-- MY CUSTOM KEYMAPS END
+
 vim.keymap.set('n', '<C-h>', '<C-w><C-h>', { desc = 'Move focus to the left window' })
 vim.keymap.set('n', '<C-l>', '<C-w><C-l>', { desc = 'Move focus to the right window' })
 vim.keymap.set('n', '<C-j>', '<C-w><C-j>', { desc = 'Move focus to the lower window' })
@@ -207,7 +241,25 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
-
+-- vim.api.nvim_create_autocmd('VimLeavePre', {
+--   callback = function()
+--     local session_path = vim.fn.stdpath 'data' .. '/sessions'
+--     vim.fn.mkdir(session_path, 'p')
+--
+--     local session_file = string.format('%s/session-%d.vim', session_path, vim.fn.getpid())
+--     vim.cmd('silent! mksession! ' .. session_file)
+--   end,
+-- })
+--
+-- vim.api.nvim_create_autocmd('VimEnter', {
+--   once = true,
+--   callback = function()
+--     local session_file = vim.fn.stdpath 'data' .. '/sessions/session-' .. vim.fn.getpid() .. '.vim'
+--     if vim.fn.filereadable(session_file) == 1 then
+--       vim.cmd('silent! source ' .. session_file)
+--     end
+--   end,
+-- })
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
 --  See `:help vim.hl.on_yank()`
@@ -218,7 +270,6 @@ vim.api.nvim_create_autocmd('TextYankPost', {
     vim.hl.on_yank()
   end,
 })
-
 -- [[ Install `lazy.nvim` plugin manager ]]
 --    See `:help lazy.nvim.txt` or https://github.com/folke/lazy.nvim for more info
 local lazypath = vim.fn.stdpath 'data' .. '/lazy/lazy.nvim'
@@ -351,6 +402,120 @@ require('lazy').setup({
     },
   },
 
+  -- MY PLUGINS - START --
+  {
+    'rmagatti/auto-session',
+    config = function()
+      require('auto-session').setup {
+        auto_session_enabled = true,
+        auto_save_enabled = true,
+        auto_restore_enabled = true,
+        session_lens = {
+          load_on_setup = true,
+          theme_conf = { border = true },
+          previewer = false,
+        },
+      }
+
+      vim.keymap.set('n', '<leader>sL', require('auto-session.session-lens').search_session, {
+        desc = '[S]ession [L]ens',
+      })
+    end,
+  },
+  {
+    'nvim-lualine/lualine.nvim',
+    dependencies = { 'nvim-tree/nvim-web-devicons' },
+    config = function()
+      require('lualine').setup()
+    end,
+  },
+  {
+    'nvim-tree/nvim-tree.lua',
+    dependencies = {
+      'nvim-tree/nvim-web-devicons', -- optional for file icons
+    },
+    config = function()
+      require('nvim-tree').setup {
+        update_focused_file = {
+          enable = true,
+          update_cwd = true,
+          ignore_list = {},
+        },
+      }
+
+      vim.keymap.set('n', '<leader>e', ':NvimTreeToggle<CR>', { desc = 'Toggle file tree' })
+    end,
+  },
+  {
+    'windwp/nvim-autopairs',
+    event = 'InsertEnter', -- Lazy-load when entering insert mode
+    config = function()
+      require('nvim-autopairs').setup()
+
+      -- If you're using nvim-cmp, integrate with it too:
+      local cmp_status, cmp = pcall(require, 'cmp')
+      if cmp_status then
+        local autopairs = require 'nvim-autopairs.completion.cmp'
+        cmp.event:on('confirm_done', autopairs.on_confirm_done())
+      end
+    end,
+  },
+  {
+    'hrsh7th/nvim-cmp',
+    dependencies = {
+      'hrsh7th/cmp-nvim-lsp',
+      'hrsh7th/cmp-buffer',
+      'hrsh7th/cmp-path',
+      'saadparwaiz1/cmp_luasnip',
+      'L3MON4D3/LuaSnip',
+      'rafamadriz/friendly-snippets',
+    },
+    event = 'InsertEnter',
+    config = function()
+      local cmp = require 'cmp'
+      local luasnip = require 'luasnip'
+
+      require('luasnip.loaders.from_vscode').lazy_load()
+
+      cmp.setup {
+        snippet = {
+          expand = function(args)
+            luasnip.lsp_expand(args.body)
+          end,
+        },
+        mapping = cmp.mapping.preset.insert {
+          ['<Tab>'] = cmp.mapping.select_next_item(),
+          ['<S-Tab>'] = cmp.mapping.select_prev_item(),
+          ['<CR>'] = cmp.mapping.confirm { select = true },
+          ['<C-Space>'] = cmp.mapping.complete(),
+          ['<Esc>'] = cmp.mapping.abort(),
+        },
+        sources = cmp.config.sources {
+          { name = 'nvim_lsp' },
+          { name = 'luasnip' },
+          { name = 'buffer' },
+          { name = 'path' },
+        },
+      }
+    end,
+  },
+  -- GIT PLUGINS
+  {
+    'tpope/vim-fugitive',
+    cmd = { 'Git', 'G', 'Gdiffsplit', 'Gvdiffsplit', 'Gbrowse', 'Glog', 'Gedit', 'Gwrite' },
+  },
+
+  -- MOTION PLUGINS
+  {
+    'kylechui/nvim-surround',
+    version = '*', -- Use for stability
+    event = 'VeryLazy',
+    config = function()
+      require('nvim-surround').setup {}
+    end,
+  },
+  -- MY PLUGINS - END
+
   -- NOTE: Plugins can specify dependencies.
   --
   -- The dependencies are proper plugin specifications as well - anything
@@ -426,16 +591,68 @@ require('lazy').setup({
 
       -- See `:help telescope.builtin`
       local builtin = require 'telescope.builtin'
+      local Path = require 'plenary.path'
+      local pickers = require 'telescope.pickers'
+      local finders = require 'telescope.finders'
+      local conf = require('telescope.config').values
+      local actions = require 'telescope.actions'
+      local action_state = require 'telescope.actions.state'
+
       vim.keymap.set('n', '<leader>sh', builtin.help_tags, { desc = '[S]earch [H]elp' })
-      vim.keymap.set('n', '<leader>sk', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
+      vim.keymap.set('n', '<leader>sK', builtin.keymaps, { desc = '[S]earch [K]eymaps' })
       vim.keymap.set('n', '<leader>sf', builtin.find_files, { desc = '[S]earch [F]iles' })
       vim.keymap.set('n', '<leader>ss', builtin.builtin, { desc = '[S]earch [S]elect Telescope' })
-      vim.keymap.set('n', '<leader>sw', builtin.grep_string, { desc = '[S]earch current [W]ord' })
+      vim.keymap.set('n', '<leader>sw', function()
+        builtin.grep_string { initial_mode = 'normal' }
+      end, { desc = '[S]earch current [W]ord' })
       vim.keymap.set('n', '<leader>sg', builtin.live_grep, { desc = '[S]earch by [G]rep' })
       vim.keymap.set('n', '<leader>sd', builtin.diagnostics, { desc = '[S]earch [D]iagnostics' })
       vim.keymap.set('n', '<leader>sr', builtin.resume, { desc = '[S]earch [R]esume' })
-      vim.keymap.set('n', '<leader>s.', builtin.oldfiles, { desc = '[S]earch Recent Files ("." for repeat)' })
-      vim.keymap.set('n', '<leader><leader>', builtin.buffers, { desc = '[ ] Find existing buffers' })
+
+      local function get_git_root()
+        local handle = io.popen 'git rev-parse --show-toplevel 2>/dev/null'
+        if handle then
+          local result = handle:read '*a'
+          handle:close()
+          return result and result:gsub('%s+$', '')
+        end
+      end
+
+      vim.keymap.set('n', '<leader>s.', function()
+        local git_root = get_git_root()
+        if not git_root then
+          vim.notify('Not inside a Git repository', vim.log.levels.WARN)
+          return
+        end
+
+        local filtered = vim.tbl_filter(function(path)
+          return string.find(Path:new(path):absolute(), git_root, 1, true) ~= nil
+        end, vim.v.oldfiles)
+
+        pickers
+          .new({}, {
+            prompt_title = 'Recent files (Git root only)',
+            finder = finders.new_table {
+              results = filtered,
+            },
+            sorter = conf.generic_sorter {},
+            attach_mappings = function(prompt_bufnr, _)
+              actions.select_default:replace(function()
+                actions.close(prompt_bufnr)
+                local selection = action_state.get_selected_entry()
+                vim.cmd('edit ' .. selection[1])
+              end)
+              return true
+            end,
+          })
+          :find()
+      end, { desc = '[S]earch recent files (Git root only)' })
+      -- vim.keymap.set('n', '<leader>s.', function()
+      --   builtin.oldfiles { initial_mode = 'normal' }
+      -- end, { desc = '[S]earch Recent Files ("." for repeat)' })
+      vim.keymap.set('n', '<leader><leader>', function()
+        builtin.buffers { initial_mode = 'normal' }
+      end, { desc = 'Find files in buffer' })
 
       -- Slightly advanced example of overriding default behavior and theme
       vim.keymap.set('n', '<leader>/', function()
@@ -698,6 +915,20 @@ require('lazy').setup({
             },
           },
         },
+
+        eslint = {
+          cmd = { './node_modules/.bin/eslint', '--stdio' },
+          settings = {
+            format = { enable = true },
+          },
+          root_dir = require('lspconfig.util').root_pattern('.eslintrc.js', '.eslintrc.cjs', '.eslintrc.json', '.eslintrc', 'package.json', '.git'),
+        },
+
+        ts_ls = {
+          on_attach = function(client)
+            client.server_capabilities.documentFormattingProvider = false
+          end,
+        },
       }
 
       -- Ensure the servers and tools above are installed
@@ -756,7 +987,7 @@ require('lazy').setup({
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
         -- languages here or re-enable it for the disabled ones.
-        local disable_filetypes = { c = true, cpp = true }
+        local disable_filetypes = { c = true, cpp = true, javascript = true }
         if disable_filetypes[vim.bo[bufnr].filetype] then
           return nil
         else
@@ -768,6 +999,7 @@ require('lazy').setup({
       end,
       formatters_by_ft = {
         lua = { 'stylua' },
+        javascript = { 'eslint' },
         -- Conform can also run multiple formatters sequentially
         -- python = { "isort", "black" },
         --
@@ -895,6 +1127,11 @@ require('lazy').setup({
       -- Like many other themes, this one has different styles, and you could load
       -- any other, such as 'tokyonight-storm', 'tokyonight-moon', or 'tokyonight-day'.
       vim.cmd.colorscheme 'tokyonight-night'
+      vim.api.nvim_set_hl(0, 'Normal', { bg = 'none' })
+      vim.api.nvim_set_hl(0, 'NormalNC', { bg = 'none' })
+      vim.api.nvim_set_hl(0, 'NormalFloat', { bg = 'none' })
+      vim.api.nvim_set_hl(0, 'FloatBorder', { bg = 'none' })
+      vim.api.nvim_set_hl(0, 'Normal', { bg = 'none' })
     end,
   },
 
